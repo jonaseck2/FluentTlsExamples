@@ -1,5 +1,6 @@
 package echoClientServer;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
@@ -16,6 +17,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -31,22 +34,12 @@ public class EchoClient {
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
 	private static final String SSL_CONTEXT = "TLS";
 	private static final String[] ENABLED_PROTOCOLS = new String[] { "TLSv1.2" };
-
+	private static final String CA_FILE = "keys/nodeName_csnmt-signed.crt";
+	
 	public static void main(String[] arstring) {
 		try {
 
-			
-			// Download http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html
-/*			try {
-				Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
-				field.setAccessible(true);
-				field.set(null, java.lang.Boolean.FALSE);
-			} catch (Exception ex) {
-				ex.printStackTrace();
-			}*/
-
-			
-			SSLContext sslContext = getSslContext();
+			SSLContext sslContext = getKeyStoreSslContext();
 			
 			SSLSocketFactory sslsocketfactory = sslContext.getSocketFactory();
 			SSLSocket sslsocket = (SSLSocket) sslsocketfactory.createSocket("localhost", 9999);
@@ -72,7 +65,26 @@ public class EchoClient {
 		}
 	}
 
-	private static SSLContext getSslContext() throws KeyStoreException, IOException, NoSuchAlgorithmException,
+	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException, NoSuchAlgorithmException, IOException, KeyManagementException {
+		FileInputStream fis = new FileInputStream(CA_FILE);
+		X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
+		                        .generateCertificate(new BufferedInputStream(fis));
+
+		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+		keyStore.load(null, null);
+		keyStore.setCertificateEntry("CA", certificate);
+		
+		TrustManagerFactory trustManagerFactory = TrustManagerFactory
+				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		trustManagerFactory.init(keyStore);
+
+		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
+		sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+		return sslContext;
+	}
+
+	
+	private static SSLContext getKeyStoreSslContext() throws KeyStoreException, IOException, NoSuchAlgorithmException,
 			CertificateException, FileNotFoundException, UnrecoverableKeyException, KeyManagementException {
 		KeyStore keyStore = KeyStore.getInstance(JAVA_KEYSTORE_INSTANCE_KEY);
 		keyStore.load(new FileInputStream(JKS_PATH), KEYSTORE_PASSWORD.toCharArray());
@@ -84,8 +96,7 @@ public class EchoClient {
 		TrustManagerFactory trustManagerFactory = TrustManagerFactory
 				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 		trustManagerFactory.init(keyStore);
-		//TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-		TrustManager[] trustManagers = new TrustManager[]{new AllTrustingTrustManager()};
+		TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
 		
 		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
 		sslContext.init(keyManagers, trustManagers, null);
