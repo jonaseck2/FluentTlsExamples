@@ -50,7 +50,7 @@ public class EchoServer {
 	// keytool -import -alias nodeName_csnmt-signed -file
 	// nodeName_csnmt-signed.crt -keypass test -keystore nodeName.jks
 	// -storepass keystorePassword
-
+	
 	private static final String JKS_PATH = "keys/keystore.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
 	private static final String SSL_CONTEXT = "TLS";
@@ -58,7 +58,7 @@ public class EchoServer {
 
 	public static void main(String[] arstring) {
 		try {
-			SSLContext sslContext = getPemFileSslContext();
+			SSLContext sslContext = getKeyStoreSslContext();
 
 			SSLServerSocketFactory sslServerSocketfactory = sslContext.getServerSocketFactory();
 			SSLServerSocket sslServerSocket = (SSLServerSocket) sslServerSocketfactory.createServerSocket(9999);

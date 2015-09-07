@@ -29,7 +29,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
 public class EchoClient {
-	private static final String JAVA_KEYSTORE_INSTANCE_KEY = "JKS";
 	private static final String JKS_PATH = "keys/keystore.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
 	private static final String SSL_CONTEXT = "TLS";
@@ -72,7 +71,7 @@ public class EchoClient {
 
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(null, null);
-		keyStore.setCertificateEntry("CA", certificate);
+		keyStore.setCertificateEntry("node", certificate);
 		
 		TrustManagerFactory trustManagerFactory = TrustManagerFactory
 				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
@@ -86,7 +85,7 @@ public class EchoClient {
 	
 	private static SSLContext getKeyStoreSslContext() throws KeyStoreException, IOException, NoSuchAlgorithmException,
 			CertificateException, FileNotFoundException, UnrecoverableKeyException, KeyManagementException {
-		KeyStore keyStore = KeyStore.getInstance(JAVA_KEYSTORE_INSTANCE_KEY);
+		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(new FileInputStream(JKS_PATH), KEYSTORE_PASSWORD.toCharArray());
 
 		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
