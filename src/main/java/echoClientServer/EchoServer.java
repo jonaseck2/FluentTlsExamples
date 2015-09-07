@@ -45,11 +45,9 @@ public class EchoServer {
 	// openssl x509 -req -days 365 -in nodeName_https.csr -CA CA.crt
 	// -CAkey CA.key -set_serial 01 -out nodeName_csnmt-signed.crt
 	// import CA to java keystore
-	// keytool -import -alias csnmt -file CA.crt -keypass test -keystore nodeName.jks -storepass keystorePassword
+	// keytool -import -alias csnmt -file CA.crt -keystore nodeName.jks -storepass keystorePassword
 	// import to java keystore
-	// keytool -import -alias nodeName_csnmt-signed -file
-	// nodeName_csnmt-signed.crt -keypass test -keystore nodeName.jks
-	// -storepass keystorePassword
+	// keytool -import -alias nodeName_csnmt-signed -file nodeName_csnmt-signed.crt -keystore nodeName.jks -storepass keystorePassword
 	
 	private static final String JKS_PATH = "keys/keystore.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";

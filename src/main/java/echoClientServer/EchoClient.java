@@ -38,7 +38,7 @@ public class EchoClient {
 	public static void main(String[] arstring) {
 		try {
 
-			SSLContext sslContext = getKeyStoreSslContext();
+			SSLContext sslContext = getPemFileSslContext();
 			
 			SSLSocketFactory sslsocketfactory = sslContext.getSocketFactory();
 			SSLSocket sslsocket = (SSLSocket) sslsocketfactory.createSocket("localhost", 9999);
@@ -68,7 +68,7 @@ public class EchoClient {
 		FileInputStream fis = new FileInputStream(CA_FILE);
 		X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
 		                        .generateCertificate(new BufferedInputStream(fis));
-
+		
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(null, null);
 		keyStore.setCertificateEntry("node", certificate);
