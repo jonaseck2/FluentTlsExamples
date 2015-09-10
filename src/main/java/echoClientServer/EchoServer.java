@@ -1,14 +1,13 @@
 package echoClientServer;
 
-import java.awt.RenderingHints.Key;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -18,7 +17,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-import javax.annotation.Generated;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -52,10 +50,12 @@ public class EchoServer {
 	private static final String JKS_PATH = "keys/keystore.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
 	private static final String SSL_CONTEXT = "TLS";
-	private static final String CA_FILE = "keys/CA.crt";
+	//private static final String CA_FILES[] = {"keys/keytool_node.crt", "keys/keytool_ca.crt"};
+	private static final String CA_FILES[] = {"keys/nodeName_https.crt", "keys/CA.crt"};
 
 	public static void main(String[] arstring) {
 		try {
+			System.out.println("Starting");
 			SSLContext sslContext = getKeyStoreSslContext();
 
 			SSLServerSocketFactory sslServerSocketfactory = sslContext.getServerSocketFactory();
@@ -78,21 +78,29 @@ public class EchoServer {
 		}
 	}
 
-	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException, NoSuchAlgorithmException, IOException, KeyManagementException {
-		FileInputStream fis = new FileInputStream(CA_FILE);
-		X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
-		                        .generateCertificate(new BufferedInputStream(fis));
-
+	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException, NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException {
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(null, null);
-		keyStore.setCertificateEntry("CA", certificate);
-		
+	
+		for (String filePath : CA_FILES)
+		{
+			File file = new File(filePath);
+			FileInputStream fis = new FileInputStream(file);
+			X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
+		                        .generateCertificate(new BufferedInputStream(fis));
+			keyStore.setCertificateEntry(file.getName(), certificate);
+		}
+			
+
+		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		keyManagerFactory.init(keyStore, null);
+
 		TrustManagerFactory trustManagerFactory = TrustManagerFactory
 				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 		trustManagerFactory.init(keyStore);
 
 		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
-		sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+		sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
 		return sslContext;
 	}
 	
