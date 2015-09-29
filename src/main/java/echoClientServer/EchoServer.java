@@ -26,8 +26,9 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
+import sslContextBuilder.SslContextBuilder;
+
 public class EchoServer {
-	private static final String[] ENABLED_PROTOCOLS = new String[] { "TLSv1.2" };
 
 	// node private key
 	// openssl genrsa -aes256 -out nodeName_https.key 2048
@@ -47,16 +48,17 @@ public class EchoServer {
 	// import to java keystore
 	// keytool -import -alias nodeName_csnmt-signed -file nodeName_csnmt-signed.crt -keystore nodeName.jks -storepass keystorePassword
 	
-	private static final String JKS_PATH = "keys/keystore.jks";
+	private static final String JKS_PATH = "keys/imported.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
+	private static final String[] ENABLED_PROTOCOLS = new String[] { "TLSv1.2" };
 	private static final String SSL_CONTEXT = "TLS";
 	//private static final String CA_FILES[] = {"keys/keytool_node.crt", "keys/keytool_ca.crt"};
-	private static final String CA_FILES[] = {"keys/nodeName_https.crt", "keys/CA.crt"};
+	private static final String CA_FILES[] = {"keys/keytool_ca.key"};
 
 	public static void main(String[] arstring) {
 		try {
 			System.out.println("Starting");
-			SSLContext sslContext = getKeyStoreSslContext();
+			SSLContext sslContext = SslContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
 
 			SSLServerSocketFactory sslServerSocketfactory = sslContext.getServerSocketFactory();
 			SSLServerSocket sslServerSocket = (SSLServerSocket) sslServerSocketfactory.createServerSocket(9999);
@@ -80,19 +82,20 @@ public class EchoServer {
 
 	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException, NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException {
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-		keyStore.load(null, null);
+		keyStore.load(null);
 	
 		for (String filePath : CA_FILES)
 		{
 			File file = new File(filePath);
 			FileInputStream fis = new FileInputStream(file);
+			
 			X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
 		                        .generateCertificate(new BufferedInputStream(fis));
 			keyStore.setCertificateEntry(file.getName(), certificate);
 		}
 			
 
-		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 		keyManagerFactory.init(keyStore, null);
 
 		TrustManagerFactory trustManagerFactory = TrustManagerFactory
@@ -101,25 +104,6 @@ public class EchoServer {
 
 		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
 		sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
-		return sslContext;
-	}
-	
-	private static SSLContext getKeyStoreSslContext() throws KeyStoreException, IOException, NoSuchAlgorithmException,
-			CertificateException, FileNotFoundException, UnrecoverableKeyException, KeyManagementException {
-		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-		keyStore.load(new FileInputStream(JKS_PATH), KEYSTORE_PASSWORD.toCharArray());
-
-		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-		keyManagerFactory.init(keyStore, KEYSTORE_PASSWORD.toCharArray());
-
-		TrustManagerFactory trustManagerFactory = TrustManagerFactory
-				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-		trustManagerFactory.init(keyStore);
-
-		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
-		TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-		KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
-		sslContext.init(keyManagers, trustManagers, null);
 		return sslContext;
 	}
 }
