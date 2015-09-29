@@ -37,12 +37,15 @@ public class EchoClient {
 		SSLSocket sslsocket = null;
 		try {
 
-			//SSLContext sslContext = SslContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
-			SSLContext sslContext = SSLContextBuilder.builder().withNonvalidatingTrustStore().build();
+			// SSLContext sslContext =
+			// SslContextBuilder.builder().withKeystoreFile(JKS_PATH,
+			// KEYSTORE_PASSWORD).build();
+			// SSLContext sslContext =
+			// SSLContextBuilder.builder().withNonvalidatingTrustStore().build();
 
-			SSLSocketFactory sslsocketfactory = sslContext.getSocketFactory();
-			sslsocket = (SSLSocket) sslsocketfactory.createSocket("localhost", 9999);
-			sslsocket.setEnabledProtocols(ENABLED_PROTOCOLS);
+			sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustStore().socketBuilder() //
+					.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).build();
+
 			System.out.println("Shaking hands");
 			sslsocket.startHandshake();
 

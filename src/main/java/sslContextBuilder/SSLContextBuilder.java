@@ -35,11 +35,21 @@ public class SSLContextBuilder {
 	}
 
 	public SSLContext build() throws KeyManagementException, NoSuchAlgorithmException{
+		SSLContext sslContext = getContext();
+		return sslContext;
+	}
+
+
+	private SSLContext getContext() throws NoSuchAlgorithmException, KeyManagementException {
 		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
 		sslContext.init((KeyManager[]) myKeyManagers.toArray(), (TrustManager[]) myTrustManagers.toArray(), null);
 		return sslContext;
 	}
 
+	public SSLSocketBuilder socketBuilder() throws KeyManagementException, NoSuchAlgorithmException{
+		return new SSLSocketBuilder(getContext());
+	}
+	
 	/**
 	 * 
 	 * @param keystoreFilePath Path to the keystore to use
