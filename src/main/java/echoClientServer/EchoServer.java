@@ -26,7 +26,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
-import sslContextBuilder.SslContextBuilder;
+import sslContextBuilder.SSLContextBuilder;
 
 public class EchoServer {
 
@@ -58,7 +58,7 @@ public class EchoServer {
 	public static void main(String[] arstring) {
 		try {
 			System.out.println("Starting");
-			SSLContext sslContext = SslContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
+			SSLContext sslContext = SSLContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
 
 			SSLServerSocketFactory sslServerSocketfactory = sslContext.getServerSocketFactory();
 			SSLServerSocket sslServerSocket = (SSLServerSocket) sslServerSocketfactory.createServerSocket(9999);

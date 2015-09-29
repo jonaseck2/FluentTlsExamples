@@ -22,7 +22,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
-import sslContextBuilder.SslContextBuilder;
+import sslContextBuilder.SSLContextBuilder;
 
 public class EchoClient {
 	private static final String JKS_PATH = "keys/keystore.jks";
@@ -38,7 +38,7 @@ public class EchoClient {
 		try {
 
 			//SSLContext sslContext = SslContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
-			SSLContext sslContext = SslContextBuilder.builder().withNonvalidatingTrustStore().build();
+			SSLContext sslContext = SSLContextBuilder.builder().withNonvalidatingTrustStore().build();
 
 			SSLSocketFactory sslsocketfactory = sslContext.getSocketFactory();
 			sslsocket = (SSLSocket) sslsocketfactory.createSocket("localhost", 9999);

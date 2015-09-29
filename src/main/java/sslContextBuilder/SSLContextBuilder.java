@@ -21,19 +21,17 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-import echoClientServer.AllTrustingTrustManager;
-
-public class SslContextBuilder {
+public class SSLContextBuilder {
 	private static final String SSL_CONTEXT = "TLS";
 	private List<KeyManager> myKeyManagers = new ArrayList<>();
 	private List<TrustManager> myTrustManagers = new ArrayList<>();
 
-	private SslContextBuilder() {
+	private SSLContextBuilder() {
 	};
 
 
-	public static SslContextBuilder builder() {
-		return new SslContextBuilder();
+	public static SSLContextBuilder builder() {
+		return new SSLContextBuilder();
 	}
 
 	public SSLContext build() throws KeyManagementException, NoSuchAlgorithmException{
@@ -41,14 +39,14 @@ public class SslContextBuilder {
 		sslContext.init((KeyManager[]) myKeyManagers.toArray(), (TrustManager[]) myTrustManagers.toArray(), null);
 		return sslContext;
 	}
-	
+
 	/**
 	 * 
 	 * @param keystoreFilePath Path to the keystore to use
 	 * @param keystorePassword Password to the keystore to use
 	 * @return
 	 */
-	public SslContextBuilder withKeystoreFile(String keystoreFilePath, String keystorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException{
+	public SSLContextBuilder withKeystoreFile(String keystoreFilePath, String keystorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException{
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(new FileInputStream(keystoreFilePath), keystorePassword.toCharArray());
 
@@ -67,7 +65,7 @@ public class SslContextBuilder {
 	 * 
 	 * @return a Trust managher that does not validate certificate chain of trust
 	 */
-	public SslContextBuilder withNonvalidatingTrustStore(){
+	public SSLContextBuilder withNonvalidatingTrustStore(){
 		myTrustManagers.add(new X509TrustManager() {
 			
 			@Override
