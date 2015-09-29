@@ -20,7 +20,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
 import sslContextBuilder.SslContextBuilder;
@@ -38,7 +37,8 @@ public class EchoClient {
 		SSLSocket sslsocket = null;
 		try {
 
-			SSLContext sslContext = SslContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
+			//SSLContext sslContext = SslContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
+			SSLContext sslContext = SslContextBuilder.builder().withNonvalidatingTrustStore().build();
 
 			SSLSocketFactory sslsocketfactory = sslContext.getSocketFactory();
 			sslsocket = (SSLSocket) sslsocketfactory.createSocket("localhost", 9999);
@@ -57,14 +57,6 @@ public class EchoClient {
 		} catch (Exception exception) {
 			exception.printStackTrace();
 		}
-	}
-
-	private static SSLContext getTrustingSslContext() throws CertificateException, KeyStoreException,
-			NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException {
-
-		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
-		sslContext.init(null, new TrustManager[] { new AllTrustingTrustManager() }, null);
-		return sslContext;
 	}
 
 	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException,

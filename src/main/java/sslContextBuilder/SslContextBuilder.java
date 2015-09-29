@@ -9,6 +9,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -18,6 +19,9 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+
+import echoClientServer.AllTrustingTrustManager;
 
 public class SslContextBuilder {
 	private static final String SSL_CONTEXT = "TLS";
@@ -38,6 +42,12 @@ public class SslContextBuilder {
 		return sslContext;
 	}
 	
+	/**
+	 * 
+	 * @param keystoreFilePath Path to the keystore to use
+	 * @param keystorePassword Password to the keystore to use
+	 * @return
+	 */
 	public SslContextBuilder withKeystoreFile(String keystoreFilePath, String keystorePassword) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException, UnrecoverableKeyException{
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(new FileInputStream(keystoreFilePath), keystorePassword.toCharArray());
@@ -51,6 +61,29 @@ public class SslContextBuilder {
 		trustManagerFactory.init(keyStore);
 		myTrustManagers.addAll(Arrays.asList(trustManagerFactory.getTrustManagers()));
 		return this;
-
+	}
+	
+	/**
+	 * 
+	 * @return a Trust managher that does not validate certificate chain of trust
+	 */
+	public SslContextBuilder withNonvalidatingTrustStore(){
+		myTrustManagers.add(new X509TrustManager() {
+			
+			@Override
+			public X509Certificate[] getAcceptedIssuers() {
+				return null;
+			}
+			
+			@Override
+			public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+			}
+			
+			@Override
+			public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+				
+			}
+		});
+		return this;
 	}
 }
