@@ -44,7 +44,7 @@ public class EchoClient {
 			// SSLContextBuilder.builder().withNonvalidatingTrustStore().build();
 
 			sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustStore().socketBuilder() //
-					.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).build();
+					.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).socket();
 
 			System.out.println("Shaking hands");
 			sslsocket.startHandshake();

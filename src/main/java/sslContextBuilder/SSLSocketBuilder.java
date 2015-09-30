@@ -5,6 +5,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -19,7 +21,7 @@ public class SSLSocketBuilder {
 		myContext = context;
 	}
 
-	public SSLSocket build() throws IOException {
+	public SSLSocket socket() throws IOException {
 		SSLSocketFactory sslsocketfactory = myContext.getSocketFactory();
 		SSLSocket sslsocket = (SSLSocket) sslsocketfactory.createSocket(myHost, myPort);
 		if (myEnabledProtocols != null) {
@@ -28,6 +30,15 @@ public class SSLSocketBuilder {
 		return sslsocket;
 	}
 
+	public SSLServerSocket serverSocket() throws IOException {
+		SSLServerSocketFactory sslServerSocketfactory = myContext.getServerSocketFactory();
+		SSLServerSocket sslServerSocket = (SSLServerSocket) sslServerSocketfactory.createServerSocket(myPort);
+		if (myEnabledProtocols != null) {
+			sslServerSocket.setEnabledProtocols(myEnabledProtocols);
+		}
+		return sslServerSocket;
+	}
+	
 	public SSLSocketBuilder withEnabledProtocols(String[] protocols) {
 		myEnabledProtocols = protocols;
 		return this;

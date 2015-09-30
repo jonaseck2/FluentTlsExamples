@@ -37,33 +37,35 @@ public class EchoServer {
 	// certificate authority certificate signing request
 	// openssl req -new -x509 -days 1095 -key CA.key -out CA.crt
 	// node certificate signing request
-	// openssl req -new -x509 -days 365 -key nodeName_https.key -out nodeName_https.crt
+	// openssl req -new -x509 -days 365 -key nodeName_https.key -out
+	// nodeName_https.crt
 	// node key signing request
 	// openssl req -new -key nodeName_https.key -out nodeName_https.csr
 	// node https certificate signed by CA
 	// openssl x509 -req -days 365 -in nodeName_https.csr -CA CA.crt
 	// -CAkey CA.key -set_serial 01 -out nodeName_csnmt-signed.crt
 	// import CA to java keystore
-	// keytool -import -alias csnmt -file CA.crt -keystore nodeName.jks -storepass keystorePassword
+	// keytool -import -alias csnmt -file CA.crt -keystore nodeName.jks
+	// -storepass keystorePassword
 	// import to java keystore
-	// keytool -import -alias nodeName_csnmt-signed -file nodeName_csnmt-signed.crt -keystore nodeName.jks -storepass keystorePassword
-	
+	// keytool -import -alias nodeName_csnmt-signed -file
+	// nodeName_csnmt-signed.crt -keystore nodeName.jks -storepass
+	// keystorePassword
+
 	private static final String JKS_PATH = "keys/imported.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
 	private static final String[] ENABLED_PROTOCOLS = new String[] { "TLSv1.2" };
 	private static final String SSL_CONTEXT = "TLS";
-	//private static final String CA_FILES[] = {"keys/keytool_node.crt", "keys/keytool_ca.crt"};
-	private static final String CA_FILES[] = {"keys/keytool_ca.key"};
+	// private static final String CA_FILES[] = {"keys/keytool_node.crt",
+	// "keys/keytool_ca.crt"};
+	private static final String CA_FILES[] = { "keys/keytool_ca.key" };
 
 	public static void main(String[] arstring) {
 		try {
 			System.out.println("Starting");
-			SSLContext sslContext = SSLContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).build();
+			SSLServerSocket sslServerSocket = SSLContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).socketBuilder()
+					.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).serverSocket();
 
-			SSLServerSocketFactory sslServerSocketfactory = sslContext.getServerSocketFactory();
-			SSLServerSocket sslServerSocket = (SSLServerSocket) sslServerSocketfactory.createServerSocket(9999);
-			sslServerSocket.setEnabledProtocols(ENABLED_PROTOCOLS);
-			System.out.println("Listening");
 			SSLSocket sslSocket = (SSLSocket) sslServerSocket.accept();
 
 			InputStream inputstream = sslSocket.getInputStream();
@@ -80,20 +82,19 @@ public class EchoServer {
 		}
 	}
 
-	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException, NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException {
+	private static SSLContext getPemFileSslContext() throws CertificateException, KeyStoreException,
+			NoSuchAlgorithmException, IOException, KeyManagementException, UnrecoverableKeyException {
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(null);
-	
-		for (String filePath : CA_FILES)
-		{
+
+		for (String filePath : CA_FILES) {
 			File file = new File(filePath);
 			FileInputStream fis = new FileInputStream(file);
-			
+
 			X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance("X.509")
-		                        .generateCertificate(new BufferedInputStream(fis));
+					.generateCertificate(new BufferedInputStream(fis));
 			keyStore.setCertificateEntry(file.getName(), certificate);
 		}
-			
 
 		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
 		keyManagerFactory.init(keyStore, null);
