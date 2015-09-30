@@ -1,8 +1,6 @@
 package sslContextBuilder;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;

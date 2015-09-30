@@ -54,8 +54,12 @@ public class EchoServer {
 
 	private static final String JKS_PATH = "keys/imported.jks";
 	private static final String KEYSTORE_PASSWORD = "keystorePassword";
+
 	private static final String[] ENABLED_PROTOCOLS = new String[] { "TLSv1.2" };
+	
 	private static final String SSL_CONTEXT = "TLS";
+    private static final String KEY_ALGORITHM = "RSA";
+    private static final int KEY_LENGTH = 2048;
 	// private static final String CA_FILES[] = {"keys/keytool_node.crt",
 	// "keys/keytool_ca.crt"};
 	private static final String CA_FILES[] = { "keys/keytool_ca.key" };
@@ -63,8 +67,10 @@ public class EchoServer {
 	public static void main(String[] arstring) {
 		try {
 			System.out.println("Starting");
-			SSLServerSocket sslServerSocket = SSLContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).socketBuilder()
-					.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).serverSocket();
+			//SSLServerSocket sslServerSocket = SSLContextBuilder.builder().withKeystoreFile(JKS_PATH, KEYSTORE_PASSWORD).socketBuilder()
+			SSLServerSocket sslServerSocket = SSLContextBuilder.builder() //
+					.withSelfSignedKeyAndCert(KEY_ALGORITHM, KEY_LENGTH).build().socketBuilder()
+			.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).serverSocket();
 
 			SSLSocket sslSocket = (SSLSocket) sslServerSocket.accept();
 
