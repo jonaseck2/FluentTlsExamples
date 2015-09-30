@@ -19,7 +19,6 @@ import java.security.cert.X509Certificate;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 import sslContextBuilder.SSLContextBuilder;
@@ -43,7 +42,7 @@ public class EchoClient {
 			// SSLContext sslContext =
 			// SSLContextBuilder.builder().withNonvalidatingTrustStore().build();
 
-			sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustStore().socketBuilder() //
+			sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustManager().socketBuilder() //
 					.withHost("localhost").withPort(9999).withEnabledProtocols(ENABLED_PROTOCOLS).socket();
 
 			System.out.println("Shaking hands");

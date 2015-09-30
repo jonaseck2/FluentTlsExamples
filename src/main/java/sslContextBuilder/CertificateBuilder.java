@@ -35,7 +35,7 @@ public class CertificateBuilder {
 	private static final int DEFAULT_NUMBER_OF_DAYS_VALID = 365;
 	private static final String ALGORITHM_INFO_KEY = CertificateAlgorithmId.NAME + "." + CertificateAlgorithmId.ALGORITHM;
 	private static final AlgorithmId DEFAULT_ALGORITHM_ID = new AlgorithmId(AlgorithmId.md5WithRSAEncryption_oid);
-	private static final String DEFAULT_DN = "cn=testcn";
+	private static final String DEFAULT_DN = "O=Internet Widgits Pty Ltd, ST=Some-State, C=AU";
 	private static final String DEFAULT_SIGNATURE_ALGORITHM = "SHA256withRSA";
 	private String myKeyAndKeystorePassword = getRandomString(12);
 	private String myCertificateAlias = getRandomString(12);
