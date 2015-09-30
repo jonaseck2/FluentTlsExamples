@@ -1,8 +1,12 @@
 package sslContextBuilder;
 
+import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyManagementException;
@@ -12,17 +16,20 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -32,10 +39,14 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class SSLContextBuilder {
+	private static final Pattern PRIVATE_KEY_PATTERN = Pattern.compile("-+BEGIN *([A-Z]*) PRIVATE KEY-+|-+END *[A-Z]* PRIVATE KEY-+");
+	private static final String X_509_CERTIFICATE_FACTORY_INSTANCE_NAME = "X.509";
 	private static final String SSL_CONTEXT = "TLS";
 	private List<KeyManager> myKeyManagers = new ArrayList<KeyManager>();
 	private List<TrustManager> myTrustManagers = new ArrayList<TrustManager>();
-
+	private static final SecureRandom myRandom = new SecureRandom();
+	private static final int GENERATED_KEYSTORE_PASSWORD_LENGTH = 12;
+	
 	private SSLContextBuilder() {
 	};
 
@@ -75,6 +86,11 @@ public class SSLContextBuilder {
 		return withKeystore(keyStore, keystorePassword);
 	}
 
+	public SSLContextBuilder withJavaCaCertsFile() throws UnrecoverableKeyException, KeyStoreException,
+			NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
+		return withKeystoreFile(System.getProperty("java.library.path") + "/security/cacerts", "changeit");
+	}
+
 	public CertificateBuilder withSelfSignedKeyAndCert(String keyAlgorithm, int keyLength)
 			throws GeneralSecurityException, IOException {
 		KeyPairGenerator keyGen = KeyPairGenerator.getInstance(keyAlgorithm);
@@ -84,27 +100,27 @@ public class SSLContextBuilder {
 		return new CertificateBuilder(this, keyPair);
 	}
 
-	public SSLContextBuilder withTrustManager(TrustManager trustManager){
+	public SSLContextBuilder withTrustManager(TrustManager trustManager) {
 		myTrustManagers.add(trustManager);
 		return this;
 	}
-	
+
 	/**
 	 * 
 	 * @return a Trust manager that does not validate certificate chain of trust
 	 */
 	public SSLContextBuilder withNonvalidatingTrustManager() {
 		withTrustManager(new X509TrustManager() {
-			
+
 			@Override
 			public X509Certificate[] getAcceptedIssuers() {
 				return null;
 			}
-			
+
 			@Override
 			public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
 			}
-			
+
 			@Override
 			public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
 			}
@@ -124,45 +140,82 @@ public class SSLContextBuilder {
 		myTrustManagers.addAll(Arrays.asList(trustManagerFactory.getTrustManagers()));
 		return this;
 	}
-	
-	public SSLContextBuilder withPemFileKeyFile(String filePath, String keyAlgorithm) throws FileNotFoundException, IOException, InvalidKeySpecException, NoSuchAlgorithmException{
-		byte[] keyBytes = fileToByteArray(filePath);
-		
-		String pubKey = new String(keyBytes, "UTF-8");
-		//TODO Pattern.DOTALL
-		pubKey.replaceAll("-+BEGIN RSA PRIVATE KEY+-.*\n\n|-+END RSA PRIVATE KEY+-", "");
-		
-		byte[] decoded = Base64.getDecoder().decode(keyBytes);
 
-		  PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
-	      KeyFactory keyFactory = KeyFactory.getInstance(keyAlgorithm);
-	      PrivateKey privateKey = keyFactory.generatePrivate(spec);
-		
-		return this;
+	public SSLContextBuilder withPemFileKeyFile(String keyFilePath, String certFilePath, String keyPassword) throws UnrecoverableKeyException, FileNotFoundException, InvalidKeySpecException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException{
+		return withPemFileKeyFile(keyFilePath, certFilePath, keyPassword, "");
 	}
 	
-	public SSLContextBuilder withPemCertificateFile(String filePath, String keyAlgorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException{
-		byte[] certBytes = fileToByteArray(filePath);
+	public SSLContextBuilder withPemFileKeyFile(String keyFilePath, String certFilePath, String keyPassword, String suggestedKeyAlgorithm)
+			throws FileNotFoundException, IOException, InvalidKeySpecException, NoSuchAlgorithmException,
+			KeyStoreException, CertificateException, UnrecoverableKeyException {
 		
-		String pubKey = new String(certBytes, "UTF-8");
-		pubKey = pubKey.replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|-+END PUBLIC KEY-+\\r?\\n?)", "");
+		File keyFile = new File(keyFilePath);
+		PrivateKey privateKey = getKeyFromPem(keyFile, suggestedKeyAlgorithm);
 
-		byte[] decoded = Base64.getDecoder().decode(certBytes);
+		File certFile = new File(certFilePath);
+		X509Certificate certificate = getCertFromPem(certFile);
 
-		X509EncodedKeySpec spec = new X509EncodedKeySpec(decoded);
-		KeyFactory keyFactory = KeyFactory.getInstance(keyAlgorithm);
-		PublicKey publicKey = keyFactory.generatePublic(spec);
+		String generatedKeystorePassword = SSLContextBuilder.getRandomString(GENERATED_KEYSTORE_PASSWORD_LENGTH);
 		
+		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+		keyStore.load(null, generatedKeystorePassword.toCharArray());
+
+		keyStore.setCertificateEntry(certFile.getName(), certificate);		
 		
+		keyStore.setKeyEntry(keyFile.getName(), privateKey, keyPassword.toCharArray(), new Certificate[] {certificate});
+		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(privateKey.getAlgorithm());
+		keyManagerFactory.init(keyStore, generatedKeystorePassword.toCharArray());
+
+		myKeyManagers.addAll(Arrays.asList(keyManagerFactory.getKeyManagers()));
+
+		TrustManagerFactory trustManagerFactory = TrustManagerFactory
+				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+		trustManagerFactory.init(keyStore);
+		
+		myTrustManagers.addAll(Arrays.asList(trustManagerFactory.getTrustManagers()));
+
 		return this;
 	}
 
-	private static byte[] fileToByteArray(String filePath) throws FileNotFoundException, IOException {
-		FileInputStream in = new FileInputStream(filePath);
+	private static X509Certificate getCertFromPem(File keyFile) throws FileNotFoundException, CertificateException {
+		FileInputStream fis = new FileInputStream(keyFile);
+
+		X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance(X_509_CERTIFICATE_FACTORY_INSTANCE_NAME)
+				.generateCertificate(new BufferedInputStream(fis));
+		return certificate;
+	}
+
+	private static byte[] fileToByteArray(File file) throws FileNotFoundException, IOException {
+		FileInputStream in = new FileInputStream(file);
 		byte[] keyBytes = new byte[in.available()];
 		in.read(keyBytes);
 		in.close();
 		return keyBytes;
 	}
 
+	private static PrivateKey getKeyFromPem(File file, String suggestedKeyAlgorithm) throws FileNotFoundException, IOException,
+			UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeySpecException {
+		byte[] keyBytes = fileToByteArray(file);
+		String keyAlgorithm = suggestedKeyAlgorithm;
+		
+		String key = new String(keyBytes, "UTF-8");
+		Matcher matcher = PRIVATE_KEY_PATTERN.matcher(key);
+		if(matcher.matches()){
+			if(matcher.group(1).length() > 2){
+				keyAlgorithm = matcher.group(1);				
+			}
+			matcher.replaceAll("");
+		}
+
+		byte[] decoded = Base64.getDecoder().decode(keyBytes);
+
+		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
+		KeyFactory keyFactory = KeyFactory.getInstance(keyAlgorithm);
+		PrivateKey privateKey = keyFactory.generatePrivate(spec);
+		return privateKey;
+	}
+	
+	public static String getRandomString(int chars){
+		return new BigInteger(chars*5, myRandom).toString(32);
+	}
 }

@@ -28,27 +28,19 @@ import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
 
-@SuppressWarnings("restriction")
 public class CertificateBuilder {
 
+	private static final int GENERATED_ALIAS_LENGTH = 12;
 	private static final long MILLISECONDS_IN_DAY = 86400000l;
 	private static final int DEFAULT_NUMBER_OF_DAYS_VALID = 365;
 	private static final String ALGORITHM_INFO_KEY = CertificateAlgorithmId.NAME + "." + CertificateAlgorithmId.ALGORITHM;
 	private static final AlgorithmId DEFAULT_ALGORITHM_ID = new AlgorithmId(AlgorithmId.md5WithRSAEncryption_oid);
-	private static final String DEFAULT_DN = "O=Internet Widgits Pty Ltd, ST=Some-State, C=AU";
+	private static final String DEFAULT_DN = "cn=testcn";
 	private static final String DEFAULT_SIGNATURE_ALGORITHM = "SHA256withRSA";
-	private String myKeyAndKeystorePassword = getRandomString(12);
-	private String myCertificateAlias = getRandomString(12);
-	private String myKeyAlias = getRandomString(12);
 	X509CertInfo myCertInfo = new X509CertInfo();
 	private KeyPair myKeyPair;
 	private SSLContextBuilder mySSLContextBuilder;
-	private static final SecureRandom myRandom = new SecureRandom();
 	
-	
-	private static String getRandomString(int chars){
-		return new BigInteger(chars*5, myRandom).toString(32);
-	}
 	
 	public CertificateBuilder(SSLContextBuilder sslContextBuilder, KeyPair keyPair) {
 		myKeyPair = keyPair;
@@ -58,7 +50,6 @@ public class CertificateBuilder {
 	public SSLContextBuilder build() throws InvalidKeyException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, SignatureException, IOException, KeyStoreException, UnrecoverableKeyException{
 		if(myCertInfo.get(X509CertInfo.VALIDITY) == null){
 			withValidityInDays(DEFAULT_NUMBER_OF_DAYS_VALID);
-
 		}
 		
 		if( myCertInfo.get(X509CertInfo.SERIAL_NUMBER) == null){
@@ -92,13 +83,15 @@ public class CertificateBuilder {
 		cert = new X509CertImpl(myCertInfo);
 		cert.sign(privkey, DEFAULT_SIGNATURE_ALGORITHM);
 		
+		String generatedKeyAndKeystorePassword = SSLContextBuilder.getRandomString(GENERATED_ALIAS_LENGTH);
+		
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-		keyStore.load(null, myKeyAndKeystorePassword.toCharArray());
+		keyStore.load(null, generatedKeyAndKeystorePassword.toCharArray());
 
-		keyStore.setCertificateEntry(myCertificateAlias, cert);
+		keyStore.setCertificateEntry(SSLContextBuilder.getRandomString(GENERATED_ALIAS_LENGTH), cert);
 		Certificate[] certificateChain = new Certificate[] { cert };
-		keyStore.setKeyEntry(myKeyAlias, myKeyPair.getPrivate(), myKeyAndKeystorePassword.toCharArray(), certificateChain);
-		return mySSLContextBuilder.withKeystore(keyStore, myKeyAndKeystorePassword);
+		keyStore.setKeyEntry(SSLContextBuilder.getRandomString(GENERATED_ALIAS_LENGTH), myKeyPair.getPrivate(), generatedKeyAndKeystorePassword.toCharArray(), certificateChain);
+		return mySSLContextBuilder.withKeystore(keyStore, generatedKeyAndKeystorePassword);
 
 	}
 
