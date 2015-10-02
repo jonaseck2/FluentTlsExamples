@@ -10,10 +10,11 @@ import javax.net.ssl.SSLSocketFactory;
 
 public class SSLSocketBuilder {
 
+	private static final int DEFAULT_HTTPS_PORT = 443;
 	private SSLContext myContext;
 	private String[] myEnabledProtocols;
 	private String myHost;
-	private int myPort;
+	private int myPort = 0;
 
 	public SSLSocketBuilder(SSLContext context) {
 		myContext = context;
@@ -21,10 +22,21 @@ public class SSLSocketBuilder {
 
 	public SSLSocket socket() throws IOException {
 		SSLSocketFactory sslsocketfactory = myContext.getSocketFactory();
-		SSLSocket sslsocket = (SSLSocket) sslsocketfactory.createSocket(myHost, myPort);
+		SSLSocket sslsocket = null;
+		if (myHost == null) {
+			sslsocket = (SSLSocket) sslsocketfactory.createSocket();
+		} else if (myPort == 0) {
+			sslsocket = (SSLSocket) sslsocketfactory.createSocket(myHost, DEFAULT_HTTPS_PORT);
+		} else {
+			sslsocket = (SSLSocket) sslsocketfactory.createSocket(myHost, myPort);
+		}
 		if (myEnabledProtocols != null) {
 			sslsocket.setEnabledProtocols(myEnabledProtocols);
 		}
+		if (sslsocket.isConnected()) {
+			sslsocket.startHandshake();
+		}
+
 		return sslsocket;
 	}
 
@@ -36,7 +48,7 @@ public class SSLSocketBuilder {
 		}
 		return sslServerSocket;
 	}
-	
+
 	public SSLSocketBuilder withEnabledProtocols(String[] protocols) {
 		myEnabledProtocols = protocols;
 		return this;

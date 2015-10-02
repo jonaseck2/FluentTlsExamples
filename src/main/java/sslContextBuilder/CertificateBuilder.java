@@ -18,9 +18,7 @@ import java.util.Date;
 
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.CertificateAlgorithmId;
-import sun.security.x509.CertificateIssuerName;
 import sun.security.x509.CertificateSerialNumber;
-import sun.security.x509.CertificateSubjectName;
 import sun.security.x509.CertificateValidity;
 import sun.security.x509.CertificateVersion;
 import sun.security.x509.CertificateX509Key;
@@ -28,6 +26,7 @@ import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
 
+@SuppressWarnings("restriction")
 public class CertificateBuilder {
 
 	private static final int GENERATED_ALIAS_LENGTH = 12;
@@ -112,9 +111,9 @@ public class CertificateBuilder {
 		return this;
 	}
 	
-	public CertificateBuilder withX500Name(X500Name owner) throws CertificateException, IOException{
-		myCertInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
-		myCertInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(owner));
+	public CertificateBuilder withX500Name(X500Name name) throws CertificateException, IOException{
+		myCertInfo.set(X509CertInfo.SUBJECT, name);
+		myCertInfo.set(X509CertInfo.ISSUER, name);
 		return this;
 	}
 

@@ -16,6 +16,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -39,14 +40,15 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 public class SSLContextBuilder {
-	private static final Pattern PRIVATE_KEY_PATTERN = Pattern.compile("-+BEGIN *([A-Z]*) PRIVATE KEY-+|-+END *[A-Z]* PRIVATE KEY-+");
+	private static final Pattern PRIVATE_KEY_PATTERN = Pattern
+			.compile("-+BEGIN *([A-Z]*) PRIVATE KEY-+|-+END *[A-Z]* PRIVATE KEY-+");
 	private static final String X_509_CERTIFICATE_FACTORY_INSTANCE_NAME = "X.509";
 	private static final String SSL_CONTEXT = "TLS";
 	private List<KeyManager> myKeyManagers = new ArrayList<KeyManager>();
 	private List<TrustManager> myTrustManagers = new ArrayList<TrustManager>();
 	private static final SecureRandom myRandom = new SecureRandom();
 	private static final int GENERATED_KEYSTORE_PASSWORD_LENGTH = 12;
-	
+
 	private SSLContextBuilder() {
 	};
 
@@ -61,7 +63,14 @@ public class SSLContextBuilder {
 
 	private SSLContext getContext() throws NoSuchAlgorithmException, KeyManagementException {
 		SSLContext sslContext = SSLContext.getInstance(SSL_CONTEXT);
-		sslContext.init((KeyManager[]) myKeyManagers.toArray(), (TrustManager[]) myTrustManagers.toArray(), null);
+		
+		KeyManager[] keyManagers = new KeyManager[]{};
+		keyManagers = myKeyManagers.toArray(keyManagers);
+		
+		TrustManager[] trustManagers = new TrustManager[]{};
+		trustManagers = myTrustManagers.toArray(trustManagers);
+		
+		sslContext.init(keyManagers, trustManagers, null);
 		return sslContext;
 	}
 
@@ -88,7 +97,7 @@ public class SSLContextBuilder {
 
 	public SSLContextBuilder withJavaCaCertsFile() throws UnrecoverableKeyException, KeyStoreException,
 			NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
-		return withKeystoreFile(System.getProperty("java.library.path") + "/security/cacerts", "changeit");
+		return withKeystoreFile(System.getProperty("java.home") + "/lib/security/cacerts", "changeit");
 	}
 
 	public CertificateBuilder withSelfSignedKeyAndCert(String keyAlgorithm, int keyLength)
@@ -110,7 +119,7 @@ public class SSLContextBuilder {
 	 * @return a Trust manager that does not validate certificate chain of trust
 	 */
 	public SSLContextBuilder withNonvalidatingTrustManager() {
-		withTrustManager(new X509TrustManager() {
+		return withTrustManager(new X509TrustManager() {
 
 			@Override
 			public X509Certificate[] getAcceptedIssuers() {
@@ -125,7 +134,6 @@ public class SSLContextBuilder {
 			public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
 			}
 		});
-		return this;
 	}
 
 	public SSLContextBuilder withKeystore(KeyStore keyStore, String keystorePassword)
@@ -141,14 +149,16 @@ public class SSLContextBuilder {
 		return this;
 	}
 
-	public SSLContextBuilder withPemFileKeyFile(String keyFilePath, String certFilePath, String keyPassword) throws UnrecoverableKeyException, FileNotFoundException, InvalidKeySpecException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException{
+	public SSLContextBuilder withPemFileKeyFile(String keyFilePath, String certFilePath, String keyPassword)
+			throws UnrecoverableKeyException, FileNotFoundException, InvalidKeySpecException, NoSuchAlgorithmException,
+			KeyStoreException, CertificateException, IOException {
 		return withPemFileKeyFile(keyFilePath, certFilePath, keyPassword, "");
 	}
-	
-	public SSLContextBuilder withPemFileKeyFile(String keyFilePath, String certFilePath, String keyPassword, String suggestedKeyAlgorithm)
-			throws FileNotFoundException, IOException, InvalidKeySpecException, NoSuchAlgorithmException,
-			KeyStoreException, CertificateException, UnrecoverableKeyException {
-		
+
+	public SSLContextBuilder withPemFileKeyFile(String keyFilePath, String certFilePath, String keyPassword,
+			String suggestedKeyAlgorithm) throws FileNotFoundException, IOException, InvalidKeySpecException,
+					NoSuchAlgorithmException, KeyStoreException, CertificateException, UnrecoverableKeyException {
+
 		File keyFile = new File(keyFilePath);
 		PrivateKey privateKey = getKeyFromPem(keyFile, suggestedKeyAlgorithm);
 
@@ -156,13 +166,14 @@ public class SSLContextBuilder {
 		X509Certificate certificate = getCertFromPem(certFile);
 
 		String generatedKeystorePassword = SSLContextBuilder.getRandomString(GENERATED_KEYSTORE_PASSWORD_LENGTH);
-		
+
 		KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 		keyStore.load(null, generatedKeystorePassword.toCharArray());
 
-		keyStore.setCertificateEntry(certFile.getName(), certificate);		
-		
-		keyStore.setKeyEntry(keyFile.getName(), privateKey, keyPassword.toCharArray(), new Certificate[] {certificate});
+		keyStore.setCertificateEntry(certFile.getName(), certificate);
+
+		keyStore.setKeyEntry(keyFile.getName(), privateKey, keyPassword.toCharArray(),
+				new Certificate[] { certificate });
 		KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(privateKey.getAlgorithm());
 		keyManagerFactory.init(keyStore, generatedKeystorePassword.toCharArray());
 
@@ -171,7 +182,7 @@ public class SSLContextBuilder {
 		TrustManagerFactory trustManagerFactory = TrustManagerFactory
 				.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 		trustManagerFactory.init(keyStore);
-		
+
 		myTrustManagers.addAll(Arrays.asList(trustManagerFactory.getTrustManagers()));
 
 		return this;
@@ -180,8 +191,8 @@ public class SSLContextBuilder {
 	private static X509Certificate getCertFromPem(File keyFile) throws FileNotFoundException, CertificateException {
 		FileInputStream fis = new FileInputStream(keyFile);
 
-		X509Certificate certificate = (X509Certificate) CertificateFactory.getInstance(X_509_CERTIFICATE_FACTORY_INSTANCE_NAME)
-				.generateCertificate(new BufferedInputStream(fis));
+		X509Certificate certificate = (X509Certificate) CertificateFactory
+				.getInstance(X_509_CERTIFICATE_FACTORY_INSTANCE_NAME).generateCertificate(new BufferedInputStream(fis));
 		return certificate;
 	}
 
@@ -193,16 +204,16 @@ public class SSLContextBuilder {
 		return keyBytes;
 	}
 
-	private static PrivateKey getKeyFromPem(File file, String suggestedKeyAlgorithm) throws FileNotFoundException, IOException,
-			UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeySpecException {
+	private static PrivateKey getKeyFromPem(File file, String suggestedKeyAlgorithm) throws FileNotFoundException,
+			IOException, UnsupportedEncodingException, NoSuchAlgorithmException, InvalidKeySpecException {
 		byte[] keyBytes = fileToByteArray(file);
 		String keyAlgorithm = suggestedKeyAlgorithm;
-		
+
 		String key = new String(keyBytes, "UTF-8");
 		Matcher matcher = PRIVATE_KEY_PATTERN.matcher(key);
-		if(matcher.matches()){
-			if(matcher.group(1).length() > 2){
-				keyAlgorithm = matcher.group(1);				
+		if (matcher.matches()) {
+			if (matcher.group(1).length() > 2) {
+				keyAlgorithm = matcher.group(1);
 			}
 			matcher.replaceAll("");
 		}
@@ -214,8 +225,8 @@ public class SSLContextBuilder {
 		PrivateKey privateKey = keyFactory.generatePrivate(spec);
 		return privateKey;
 	}
-	
-	public static String getRandomString(int chars){
-		return new BigInteger(chars*5, myRandom).toString(32);
+
+	public static String getRandomString(int chars) {
+		return new BigInteger(chars * 5, myRandom).toString(32);
 	}
 }
