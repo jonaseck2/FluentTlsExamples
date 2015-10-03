@@ -9,28 +9,40 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
+import com.tngtech.java.junit.dataprovider.DataProvider;
+import com.tngtech.java.junit.dataprovider.DataProviderRunner;
+import com.tngtech.java.junit.dataprovider.UseDataProvider;
+
+@RunWith(DataProviderRunner.class)
 public class SSLContextBuilderTest {
 
+	@DataProvider
+	public static Object[][] clientServerBuilderCombinationsProvider() throws Exception {
+		return new Object[][] { //
+				{ "Self signed server key with NonValidatingTrustManager client",
+						SSLContextBuilder.builder().withSelfSignedKeyAndCert("RSA", 2048).build(),
+						SSLContextBuilder.builder().withNonvalidatingTrustManager() }, };
+	}
 
 	@Test
-	public void test_can_connect_to_real_ca_using_java_cacerts() throws Exception {
-		SSLServerSocket serverSocket = SSLContextBuilder.builder().withSelfSignedKeyAndCert("RSA", 2048).build().socketBuilder().withPort(9999)
-		.serverSocket();
+	@UseDataProvider("clientServerBuilderCombinationsProvider")
+	public void test_client_server_builder_combinations(String description, SSLContextBuilder serverBuilder,
+			SSLContextBuilder clientBuilder) throws Exception {
+		SSLServerSocket serverSocket = serverBuilder.socketBuilder().withPort(9999).serverSocket();
 
-		Thread serverThread = new Thread(new ServerRunnable(serverSocket));
-		serverThread.start();
-		
-		SSLSocket sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustManager().socketBuilder().withHost("localhost").withPort(9999)
-				.socket();
-		
+		new Thread(new ServerRunnable(serverSocket)).start();
+
+		SSLSocket sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustManager().socketBuilder()
+				.withHost("localhost").withPort(9999).socket();
+
 		OutputStream outputstream = sslsocket.getOutputStream();
 		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		BufferedWriter bufferedwriter = new BufferedWriter(outputstreamwriter);
