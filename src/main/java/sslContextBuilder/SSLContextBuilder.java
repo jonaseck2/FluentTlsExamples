@@ -226,12 +226,12 @@ public class SSLContextBuilder {
 		String keyAlgorithm = suggestedKeyAlgorithm;
 
 		String key = new String(keyBytes, "ASCII");
-		// Pattern pattern = Pattern.compile(".*-+BEGIN *([A-Z]*) PRIVATE
-		// KEY-+[\r\n]*|[\r\n]*-+END *[A-Z]* PRIVATE KEY-+", Pattern.DOTALL);
 		String[] split = key.split("-+BEGIN *([A-Z]*) PRIVATE KEY-+");
 		key = split[split.length - 1].split("-+END *[A-Z]* PRIVATE KEY-+")[0];
 		key = key.replaceAll("[\r\n]*", "");
 		/*
+		 * Pattern pattern = Pattern.compile(".*-+BEGIN *([A-Z]*) PRIVATE
+		 * KEY-+[\r\n]*|[\r\n]*-+END *[A-Z]* PRIVATE KEY-+", Pattern.DOTALL);
 		 * Matcher matcher = pattern.matcher(key); if (matcher.matches()) { if
 		 * (matcher.group(1).length() > 2) { keyAlgorithm = matcher.group(1); }
 		 * key = matcher.replaceAll(""); }

@@ -24,23 +24,32 @@ import com.tngtech.java.junit.dataprovider.UseDataProvider;
 @RunWith(DataProviderRunner.class)
 public class SSLContextBuilderTest {
 
-	/*	 
-	 #generate self signed CA as jks, key and cert
-	 keytool -genkey -alias server -keyalg RSA -keysize 2048 -keystore selfsignedCA.jks -storepass changeit -dname "ou=test" -keypass changeit
-	 keytool -importkeystore -srckeystore selfsignedCA.jks -srcstorepass changeit -destkeystore selfsignedCA.p12 -deststoretype PKCS12 -srcalias server -deststorepass changeit -destkeypass changeit
-	 openssl pkcs12 -in selfsignedCA.p12  -nokeys -out selfsignedCA.pem.pub -password pass:changeit
-	 openssl pkcs12 -in selfsignedCA.p12  -nodes -nocerts -out selfsignedCA.pem -password pass:changeit
-
-	 #generate key to sign and certificate request
-	 keytool -genkey -alias server -keyalg RSA -keysize 2048 -keystore keystore.jks -storepass changeit -dname "ou=test" -keypass changeit
-	 keytool -certreq -alias server -keyalg RSA -file keystore.csr -keystore keystore.jks -storepass changeit
-
-	 openssl  x509  -req  -CA selfsignedCA.pem.pub -CAkey selfsignedCA.pem -in keystore.csr -out keystore-selfsignedCA.signed.pem.pub -days 365  -CAcreateserial
-
-	 keytool -importcert -keystore signed-keystore.jks -file keystore-selfsignedCA.signed.pem.pub -alias server -storepass changeit -noprompt
+	/*
+	 * #generate self signed CA as jks, key and cert keytool -genkey -alias
+	 * server -keyalg RSA -keysize 2048 -keystore selfsignedCA.jks -storepass
+	 * changeit -dname "ou=test" -keypass changeit keytool -importkeystore
+	 * -srckeystore selfsignedCA.jks -srcstorepass changeit -destkeystore
+	 * selfsignedCA.p12 -deststoretype PKCS12 -srcalias server -deststorepass
+	 * changeit -destkeypass changeit openssl pkcs12 -in selfsignedCA.p12
+	 * -nokeys -out selfsignedCA.pem.pub -password pass:changeit openssl pkcs12
+	 * -in selfsignedCA.p12 -nodes -nocerts -out selfsignedCA.pem -password
+	 * pass:changeit
+	 * 
+	 * #generate key to sign and certificate request keytool -genkey -alias
+	 * server -keyalg RSA -keysize 2048 -keystore keystore.jks -storepass
+	 * changeit -dname "ou=test" -keypass changeit keytool -certreq -alias
+	 * server -keyalg RSA -file keystore.csr -keystore keystore.jks -storepass
+	 * changeit
+	 * 
+	 * openssl x509 -req -CA selfsignedCA.pem.pub -CAkey selfsignedCA.pem -in
+	 * keystore.csr -out keystore-selfsignedCA.signed.pem.pub -days 365
+	 * -CAcreateserial
+	 * 
+	 * keytool -importcert -keystore signed-keystore.jks -file
+	 * keystore-selfsignedCA.signed.pem.pub -alias server -storepass changeit
+	 * -noprompt
 	 */
 
-	
 	@Test(expected = SSLHandshakeException.class)
 	public void test_can_fail_to_connect_to_real_ca_without_certificate_chain() throws Exception {
 		SSLContextBuilder.builder().socketBuilder().withHost("www.google.com").socket();
@@ -53,18 +62,22 @@ public class SSLContextBuilderTest {
 
 	@DataProvider
 	public static Object[][] clientServerBuilderCombinationsProvider() throws Exception {
-		return new Object[][] { //
+		return new Object[][] { // @formatter:off
 				{ "Self signed server key with NonValidatingTrustManager client",
 						SSLContextBuilder.builder().withSelfSignedKeyAndCert("RSA", 2048).build(),
 						SSLContextBuilder.builder().withNonvalidatingTrustManager() },
 				{ "Server and client from same keystore",
 						SSLContextBuilder.builder().withKeystoreFile("keys/keystore.jks", "changeit"),
 						SSLContextBuilder.builder().withKeystoreFile("keys/keystore.jks", "changeit") },
-				{ "Server and client from pem", 
-							SSLContextBuilder.builder().withPemFileKeyFile("keys/selfsignedCA.pem", "keys/selfsignedCA.pem.pub", "RSA"),
-							SSLContextBuilder.builder().withPemFileCertFile("keys/selfsignedCA.pem.pub") }
-				//
+				{ "Server and client from pem",
+						SSLContextBuilder.builder().withPemFileKeyFile("keys/selfsignedCA.pem", "keys/selfsignedCA.pem.pub", "RSA"),
+						SSLContextBuilder.builder().withPemFileCertFile("keys/selfsignedCA.pem.pub") },
+				{ "Server from pem and client with pem signed by server",
+						SSLContextBuilder.builder().withPemFileKeyFile("keys/selfsignedCA.pem", "keys/selfsignedCA.pem.pub", "RSA"),
+						SSLContextBuilder.builder().withPemFileCertFile("keys/keystore-selfsignedCA.signed.pem.pub") },
+				// @formatter:on
 		};
+
 	}
 
 	@Test
