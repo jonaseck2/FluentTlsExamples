@@ -3,6 +3,7 @@ package sslContextBuilder;
 import java.io.IOException;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -15,6 +16,7 @@ public class SSLSocketBuilder {
 	private String[] myEnabledProtocols;
 	private String myHost;
 	private int myPort = 0;
+	private String myEndointIdentificationAlgorithm;
 
 	public SSLSocketBuilder(SSLContext context) {
 		myContext = context;
@@ -32,6 +34,12 @@ public class SSLSocketBuilder {
 		}
 		if (myEnabledProtocols != null) {
 			sslsocket.setEnabledProtocols(myEnabledProtocols);
+		}
+		if (myEndointIdentificationAlgorithm == null){
+			SSLParameters sslParams = new SSLParameters();
+			sslParams.setEndpointIdentificationAlgorithm(myEndointIdentificationAlgorithm);
+			sslsocket.setSSLParameters(sslParams);
+
 		}
 		if (sslsocket.isConnected()) {
 			sslsocket.startHandshake();
@@ -54,6 +62,11 @@ public class SSLSocketBuilder {
 		return this;
 	}
 
+	public SSLSocketBuilder withHttpsEndpointIdentificationAlgorithm(String algorithm){
+		myEndointIdentificationAlgorithm = algorithm;
+		return this;
+	}
+	
 	public SSLSocketBuilder withHost(String host) {
 		myHost = host;
 		return this;

@@ -24,31 +24,27 @@ import com.tngtech.java.junit.dataprovider.UseDataProvider;
 @RunWith(DataProviderRunner.class)
 public class SSLContextBuilderTest {
 
+	// @formatter:off
 	/*
-	 * #generate self signed CA as jks, key and cert keytool -genkey -alias
-	 * server -keyalg RSA -keysize 2048 -keystore selfsignedCA.jks -storepass
-	 * changeit -dname "ou=test" -keypass changeit keytool -importkeystore
-	 * -srckeystore selfsignedCA.jks -srcstorepass changeit -destkeystore
-	 * selfsignedCA.p12 -deststoretype PKCS12 -srcalias server -deststorepass
-	 * changeit -destkeypass changeit openssl pkcs12 -in selfsignedCA.p12
-	 * -nokeys -out selfsignedCA.pem.pub -password pass:changeit openssl pkcs12
-	 * -in selfsignedCA.p12 -nodes -nocerts -out selfsignedCA.pem -password
-	 * pass:changeit
-	 * 
-	 * #generate key to sign and certificate request keytool -genkey -alias
-	 * server -keyalg RSA -keysize 2048 -keystore keystore.jks -storepass
-	 * changeit -dname "ou=test" -keypass changeit keytool -certreq -alias
-	 * server -keyalg RSA -file keystore.csr -keystore keystore.jks -storepass
-	 * changeit
-	 * 
-	 * openssl x509 -req -CA selfsignedCA.pem.pub -CAkey selfsignedCA.pem -in
-	 * keystore.csr -out keystore-selfsignedCA.signed.pem.pub -days 365
-	 * -CAcreateserial
-	 * 
-	 * keytool -importcert -keystore signed-keystore.jks -file
-	 * keystore-selfsignedCA.signed.pem.pub -alias server -storepass changeit
-	 * -noprompt
+	 #generate self signed CA as jks, key and cert
+	 keytool -genkey -aliasserver -keyalg RSA -keysize 2048 -keystore selfsignedCA.jks -storepass changeit -dname "ou=test" -keypass changeit
+	 keytool -importkeystore -srckeystore selfsignedCA.jks -srcstorepass changeit -destkeystore selfsignedCA.p12 -deststoretype PKCS12 -srcalias server -deststorepass changeit -destkeypass changeit 
+	 openssl pkcs12 -in selfsignedCA.p12 -nokeys -out selfsignedCA.pem.pub -password pass:changeit
+	 openssl pkcs12 -in selfsignedCA.p12 -nodes -nocerts -out selfsignedCA.pem -password pass:changeit
+	 
+	 #generate key to sign and certificate request 
+	 keytool -genkey -alias server -keyalg RSA -keysize 2048 -keystore keystore.jks -storepass  changeit -dname "ou=test" -keypass changeit 
+	 keytool -importkeystore -srckeystore keystore.jks -srcstorepass changeit -destkeystore keystore.p12 -deststoretype PKCS12 -srcalias server -deststorepass changeit -destkeypass changeit 
+	 openssl pkcs12 -in keystore.p12 -nokeys -out keystore.pem.pub -password pass:changeit
+	 openssl pkcs12 -in keystore.p12 -nodes -nocerts -out keystore.pem -password pass:changeit
+	 
+	 keytool -certreq -alias server -keyalg RSA -file keystore.csr -keystore keystore.jks -storepass changeit
+	  
+	 openssl x509 -req -CA selfsignedCA.pem.pub -CAkey selfsignedCA.pem -in keystore.csr -out keystore-selfsignedCA.signed.pem.pub -days 365 -CAcreateserial
+	  
+	 keytool -importcert -keystore signed-keystore.jks -file keystore-selfsignedCA.signed.pem.pub -alias server -storepass changeit -noprompt
 	 */
+	// @formatter:on
 
 	@Test(expected = SSLHandshakeException.class)
 	public void test_can_fail_to_connect_to_real_ca_without_certificate_chain() throws Exception {
@@ -57,38 +53,41 @@ public class SSLContextBuilderTest {
 
 	@Test
 	public void test_can_connect_to_real_ca() throws Exception {
-		SSLContextBuilder.builder().withJavaCaCertsFile().socketBuilder().withHost("www.google.com").socket();
+		SSLContextBuilder.builder().withJavaCaCertsFile().socketBuilder().withHttpsEndpointIdentificationAlgorithm("HTTPS").withHost("www.google.com").socket();
 	}
 
 	@DataProvider
-	public static Object[][] clientServerBuilderCombinationsProvider() throws Exception {
-		return new Object[][] { // @formatter:off
+	public static Object[][] clientServerSocketBuilderCombinationsProvider() throws Exception {
+		return new Object[][] {
 				{ "Self signed server key with NonValidatingTrustManager client",
-						SSLContextBuilder.builder().withSelfSignedKeyAndCert("RSA", 2048).build(),
-						SSLContextBuilder.builder().withNonvalidatingTrustManager() },
+						SSLContextBuilder.builder().withSelfSignedKeyAndCert("RSA", 2048).build().socketBuilder(),
+						SSLContextBuilder.builder().withNonvalidatingTrustManager().socketBuilder() },
 				{ "Server and client from same keystore",
-						SSLContextBuilder.builder().withKeystoreFile("keys/keystore.jks", "changeit"),
-						SSLContextBuilder.builder().withKeystoreFile("keys/keystore.jks", "changeit") },
+						SSLContextBuilder.builder().withKeystoreFile("keys/keystore.jks", "changeit").socketBuilder(),
+						SSLContextBuilder.builder().withKeystoreFile("keys/keystore.jks", "changeit").socketBuilder() },
 				{ "Server and client from pem",
-						SSLContextBuilder.builder().withPemFileKeyFile("keys/selfsignedCA.pem", "keys/selfsignedCA.pem.pub", "RSA"),
-						SSLContextBuilder.builder().withPemFileCertFile("keys/selfsignedCA.pem.pub") },
-				{ "Server from pem and client with pem signed by server",
-						SSLContextBuilder.builder().withPemFileKeyFile("keys/selfsignedCA.pem", "keys/selfsignedCA.pem.pub", "RSA"),
-						SSLContextBuilder.builder().withPemFileCertFile("keys/keystore-selfsignedCA.signed.pem.pub") },
-				// @formatter:on
+						SSLContextBuilder.builder().withPemFileKeyFile("keys/selfsignedCA.pem", "keys/selfsignedCA.pem.pub", "RSA").socketBuilder(),
+						SSLContextBuilder.builder().withPemFileCertFile("keys/selfsignedCA.pem.pub").socketBuilder() },
+				{ "Server signed by client cert",
+						SSLContextBuilder.builder().withPemFileKeyFile("keys/keystore.pem", "keys/keystore.pem.pub", "RSA").socketBuilder(),
+						SSLContextBuilder.builder().withPemFileCertFile("keys/keystore-selfsignedCA.signed.pem.pub").socketBuilder() },
+				{ "Self signed server key with hostvalidating NonValidatingTrustManager client",
+						SSLContextBuilder.builder().withSelfSignedKeyAndCert("RSA", 2048).build().socketBuilder(),
+						SSLContextBuilder.builder().withNonvalidatingTrustManager().socketBuilder().withHttpsEndpointIdentificationAlgorithm("HTTPS") },
+
 		};
 
 	}
 
 	@Test
-	@UseDataProvider("clientServerBuilderCombinationsProvider")
-	public void test_client_server_builder_combinations(String description, SSLContextBuilder serverBuilder,
-			SSLContextBuilder clientBuilder) throws Exception {
-		SSLServerSocket serverSocket = serverBuilder.socketBuilder().withPort(0).serverSocket();
+	@UseDataProvider("clientServerSocketBuilderCombinationsProvider")
+	public void test_client_server_builder_combinations(String description, SSLSocketBuilder serverBuilder,
+			SSLSocketBuilder clientBuilder) throws Exception {
+		SSLServerSocket serverSocket = serverBuilder.withPort(0).serverSocket();
 
 		new Thread(new ServerRunnable(serverSocket)).start();
 
-		SSLSocket sslsocket = SSLContextBuilder.builder().withNonvalidatingTrustManager().socketBuilder()
+		SSLSocket sslsocket = clientBuilder
 				.withHost("localhost").withPort(serverSocket.getLocalPort()).socket();
 
 		OutputStream outputstream = sslsocket.getOutputStream();
